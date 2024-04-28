@@ -1,0 +1,4 @@
+scipy== 1.11.1
+tensorflow
+ipython==7.34.0
+tensorflow-hub==0.14.0
