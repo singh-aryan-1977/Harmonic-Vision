@@ -8,7 +8,6 @@ from pathlib import Path
 from src.data_processing import data_loading
 from src.pipeline import logger as training_logger
 from src.model import architecture
-from src.model import losses
 
 
 class Pipeline:
@@ -78,111 +77,6 @@ class Pipeline:
                 plt.savefig(fname=gen_imgs_save_path)
 
         self.counter += 1
-
-
-# class BigBiGANPipeline(Pipeline):
-#     def run_epoch(self, epoch):
-#         for step, (x, y) in tqdm(enumerate(self.dataloader)):
-#             x, y = x.to(device=self.config.device), y.to(device=self.config.device)
-#             self.model.req_grad_disc(True)
-#             for _ in range(self.config.disc_steps):
-#                 img_gen, noise = self.model.generate_imgs(cls=y)
-#                 z_img = self.model.generate_latent(img=x)
-#                 self.disc_optimizer.zero_grad()
-#                 outputs = self.model.forward(
-#                     img_real=x,
-#                     img_gen=img_gen.detach(),
-#                     z_noise=noise,
-#                     z_img=z_img.detach(),
-#                     cls=y
-#                 )
-#                 disc_loss = self.disc_criterion(outputs)
-#                 disc_loss.backward()
-#                 self.disc_optimizer.step()
-
-#             self.model.req_grad_disc(False)
-#             self.gen_optimizer.zero_grad()
-#             outputs = self.model.forward(img_real=x, img_gen=img_gen, z_noise=noise, z_img=z_img, cls=y)
-#             gen_enc_loss = self.gen_criterion(outputs)
-#             gen_enc_loss.backward()
-#             self.gen_optimizer.step()
-
-#             self.save_img(epoch, x, img_gen, z_img, y)
-#             self.save_model(epoch)
-#             self.logger(epoch, step, disc_loss, gen_enc_loss)
-
-#     @classmethod
-#     def from_config(cls, data_path, config):
-#         config.device = torch.device(config.device)
-#         dataloader = data_loading.get_supported_loader(config.ds_name)(data_path, config)
-#         model = architecture.BigBiGAN.from_config(config).to(device=config.device)
-
-#         gen_enc_criterion = losses.GeneratorEncoderLoss()
-#         disc_criterion = losses.BiDiscriminatorLoss()
-
-#         gen_enc_optimizer = torch.optim.Adam(model.get_gen_enc_params(), lr=config.lr_gen, betas=config.betas)
-#         disc_optimizer = torch.optim.Adam(model.get_disc_params(), lr=config.lr_disc, betas=config.betas)
-
-#         logger = training_logger.BiGANLogger.from_config(config=config, name=config.hparams_str)
-#         return cls(
-#             model=model,
-#             gen_criterion=gen_enc_criterion,
-#             disc_criterion=disc_criterion,
-#             gen_optimizer=gen_enc_optimizer,
-#             disc_optimizer=disc_optimizer,
-#             dataloader=dataloader,
-#             logger=logger,
-#             config=config,
-#         )
-
-
-# class BigBiGANInference:
-#     def __init__(self, model, dataloader, config):
-#         self.model = model
-#         self.dataloader = dataloader
-#         self.config = config
-
-#     def inference(self):
-#         for step, (org_img, y) in tqdm(enumerate(self.dataloader)):
-#             latent = self.encode(org_img)
-#             reconstructed_img = self.generate(y, latent)
-#             self.save_img(org_img, reconstructed_img)
-#             break
-
-#     def encode(self, img):
-#         z_img = self.model.generate_latent(img=img)
-#         return z_img
-
-#     def generate(self, y, latent):
-#         img_gen, noise = self.model.generate_imgs(cls=y, noise=latent)
-#         return img_gen, noise
-
-#     def save_img(self, org_img, reconstructed_img):
-#         for name, img in [("org_img", org_img), ("reconstructed_img", reconstructed_img)]:
-#             img = img.detach().cpu()[:self.config.save_img_count, ...]
-#             img = np.transpose(vutils.make_grid(
-#                 img, padding=2, nrow=self.config.img_rows, normalize=True), (1, 2, 0))
-#             plt.imshow(img)
-
-#             file_name = f"{name}.png"
-#             gen_imgs_save_folder = Path(self.config.rec_imgs_save_path.format(
-#                 ds_name=self.config.ds_name,
-#                 model_architecture=self.config.model_architecture,
-#                 hparams=self.config.hparams_str,
-#             ))
-#             gen_imgs_save_folder.mkdir(parents=True, exist_ok=True)
-#             gen_imgs_save_path = str(gen_imgs_save_folder / file_name)
-#             plt.savefig(fname=gen_imgs_save_path)
-
-#     @classmethod
-#     def from_checkpoint(cls, data_path, checkpoint_path, config):
-#         dataloader = data_loading.get_supported_loader(config.ds_name)(data_path, config)
-#         model = architecture.BigBiGAN.from_config(config).to(device=config.device)
-#         checkpoint = torch.load(checkpoint_path)
-#         model.load_state_dict(checkpoint, strict=True)
-#         model = model.cuda()
-#         model = model.eval()
-#         return cls(model=model, dataloader=dataloader, config=config)
 
 
 class GANPipeline(Pipeline):

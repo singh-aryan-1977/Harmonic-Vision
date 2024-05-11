@@ -6,7 +6,6 @@ import random
 import torch
 from PIL import Image
 from tqdm import tqdm
-# from pytorch_pretrained_biggan import (one_hot_from_names, save_as_images, display_in_terminal, convert_to_images)
 from scipy.stats import truncnorm
 
 import os

@@ -15,7 +15,7 @@ parser.add_argument("--dataset", type=str, default="CIFAR10",
 parser.add_argument("--data_path", type=str, default="../input/cifar10-dataset",
                     help="path to dataset root folder")
 parser.add_argument("--model_architecture", type=str, default="biggan",
-                    choices=["bigbigan", "biggan"], help="type of architecture used in training")
+                    choices=["biggan"], help="type of architecture used in training")
 args = parser.parse_args()
 
 
@@ -35,11 +35,7 @@ def run_experiments():
 
 def run_experiment(config):
     training_utils.set_random_seed(seed=config.seed, device=config.device)
-    if args.model_architecture == "bigbigan":
-        training_pipeline = pipeline.BigBiGANPipeline.from_config(data_path=args.data_path, config=config)
-    elif args.model_architecture == "bigbiwgan":
-        training_pipeline = pipeline.BigBiWGANPipeline.from_config(data_path=args.data_path, config=config)
-    elif args.model_architecture == "biggan":
+    if args.model_architecture == "biggan":
         training_pipeline = pipeline.GANPipeline.from_config(data_path=args.data_path, config=config)
     else:
         raise ValueError(f"Architecture type {args.model_architecture} is not supported")
