@@ -29,7 +29,7 @@ def run_experiments():
         config["model_architecture"] = args.model_architecture
         config["hparams_str"] = hparams_str.strip("_")
         config["seed"] = seed
-        print(config)
+        #print(config)
         run_experiment(config)
 
 

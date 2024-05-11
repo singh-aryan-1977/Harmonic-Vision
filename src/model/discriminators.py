@@ -4,10 +4,10 @@ import torch.nn as nn
 from src.model import layers
 from src.training_utils import training_utils
 
-class WDisc(nn.Module):
-    def clip_weights(self, weight_cutoff):
-        for param in self.parameters():
-            param.data.clamp_(-weight_cutoff, weight_cutoff)
+# class WDisc(nn.Module):
+#     def clip_weights(self, weight_cutoff):
+#         for param in self.parameters():
+#             param.data.clamp_(-weight_cutoff, weight_cutoff)
 
 
 class DiscBigGAN(nn.Module):
@@ -63,61 +63,61 @@ class DiscBigGAN(nn.Module):
         )
 
 
-class DiscBigWGAN(DiscBigGAN, WDisc):
-    pass
+# class DiscBigWGAN(DiscBigGAN, WDisc):
+#     pass
 
 
-class DiscMLP(nn.Module):
-    def __init__(self, n_blocks, mlp_dim, in_dim, dropout, sn, w_init):
-        super().__init__()
-        mlp = [layers.LinearResnetBlock(in_dim=mlp_dim, out_dim=mlp_dim, dropout=dropout, sn=sn, w_init=w_init)
-               for _ in range(n_blocks - 1)]
-        mlp = [layers.LinearResnetBlock(in_dim=in_dim, out_dim=mlp_dim, dropout=dropout, sn=sn, w_init=w_init)] + mlp
-        self.mpls = nn.Sequential(*mlp)
-        self.linear = nn.Linear(in_features=mlp_dim, out_features=1)
-        if w_init is not None: w_init(self.linear.weight)
+# class DiscMLP(nn.Module):
+#     def __init__(self, n_blocks, mlp_dim, in_dim, dropout, sn, w_init):
+#         super().__init__()
+#         mlp = [layers.LinearResnetBlock(in_dim=mlp_dim, out_dim=mlp_dim, dropout=dropout, sn=sn, w_init=w_init)
+#                for _ in range(n_blocks - 1)]
+#         mlp = [layers.LinearResnetBlock(in_dim=in_dim, out_dim=mlp_dim, dropout=dropout, sn=sn, w_init=w_init)] + mlp
+#         self.mpls = nn.Sequential(*mlp)
+#         self.linear = nn.Linear(in_features=mlp_dim, out_features=1)
+#         if w_init is not None: w_init(self.linear.weight)
 
 
-class LatentDisc(DiscMLP):
-    def forward(self, z):
-        y1 = self.mpls(z.float())
-        y2 = self.linear(y1)
-        return y1, y2
+# class LatentDisc(DiscMLP):
+#     def forward(self, z):
+#         y1 = self.mpls(z.float())
+#         y2 = self.linear(y1)
+#         return y1, y2
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(
-            n_blocks=config.latent_disc_blocks,
-            mlp_dim=config.latent_disc_mlp_dim,
-            in_dim=config.latent_dim,
-            dropout=config.dropout,
-            w_init=config.w_init,
-            sn=config.spectral_norm,
-        )
-
-
-class LatentWDisc(LatentDisc, WDisc):
-    pass
+#     @classmethod
+#     def from_config(cls, config):
+#         return cls(
+#             n_blocks=config.latent_disc_blocks,
+#             mlp_dim=config.latent_disc_mlp_dim,
+#             in_dim=config.latent_dim,
+#             dropout=config.dropout,
+#             w_init=config.w_init,
+#             sn=config.spectral_norm,
+#         )
 
 
-class CombDisc(DiscMLP):
-    def forward(self, img, latent):
-        x = torch.cat([img, latent], dim=-1)
-        y = self.mpls(x)
-        y = self.linear(y)
-        return y
-
-    @classmethod
-    def from_config(cls, config):
-        return cls(
-            n_blocks=config.comb_disc_blocks,
-            mlp_dim=config.comb_disc_mlp_dim,
-            in_dim=config.latent_disc_mlp_dim + config.disc_mult_chs["post"][-1],
-            dropout=config.dropout,
-            w_init=config.w_init,
-            sn=config.spectral_norm,
-        )
+# class LatentWDisc(LatentDisc, WDisc):
+#     pass
 
 
-class CombWDisc(CombDisc, WDisc):
-    pass
+# class CombDisc(DiscMLP):
+#     def forward(self, img, latent):
+#         x = torch.cat([img, latent], dim=-1)
+#         y = self.mpls(x)
+#         y = self.linear(y)
+#         return y
+
+#     @classmethod
+#     def from_config(cls, config):
+#         return cls(
+#             n_blocks=config.comb_disc_blocks,
+#             mlp_dim=config.comb_disc_mlp_dim,
+#             in_dim=config.latent_disc_mlp_dim + config.disc_mult_chs["post"][-1],
+#             dropout=config.dropout,
+#             w_init=config.w_init,
+#             sn=config.spectral_norm,
+#         )
+
+
+# class CombWDisc(CombDisc, WDisc):
+#     pass

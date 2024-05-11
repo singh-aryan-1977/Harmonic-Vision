@@ -6,7 +6,7 @@ import random
 import torch
 from PIL import Image
 from tqdm import tqdm
-from pytorch_pretrained_biggan import (one_hot_from_names, save_as_images, display_in_terminal, convert_to_images)
+# from pytorch_pretrained_biggan import (one_hot_from_names, save_as_images, display_in_terminal, convert_to_images)
 from scipy.stats import truncnorm
 
 import os
@@ -108,8 +108,8 @@ else:
 
 
 # Load pre-trained model
-checkpoint = './data/CIFAR10/biggan/checkpoints/checkpoint_150.pth' 
-state_dict = torch.load(checkpoint)
+checkpoint = '/Users/adithyasriram/Desktop/CSCI 1430/Harmonic-Vision/checkpoints/checkpoint_150.pth' 
+state_dict = torch.load(checkpoint, map_location=torch.device('cpu'))
 
 config = {
         'ds_name': 'CIFAR10',
