@@ -1,4 +1,3 @@
-import argparse
 import itertools
 
 from src.pipeline import pipeline
@@ -9,36 +8,25 @@ EXP_HPARAMS = {
     "seeds": (420,),
 }
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", type=str, default="CIFAR10",
-                    choices=["FMNIST", "MNIST", "CIFAR10", "CIFAR100", "imagenette", "imagewoof"], help="dataset name")
-parser.add_argument("--data_path", type=str, default="../input/cifar10-dataset",
-                    help="path to dataset root folder")
-parser.add_argument("--model_architecture", type=str, default="biggan",
-                    choices=["biggan"], help="type of architecture used in training")
-args = parser.parse_args()
-
+DATASET = "custom"
+DATA_PATH = "../input/custom-dataset"
 
 def run_experiments():
     for hparams_overwrite_list, seed in itertools.product(EXP_HPARAMS["params"], EXP_HPARAMS["seeds"]):
-        config = training_utils.get_config(args.dataset)
+        config = training_utils.get_config(DATASET)
         hparams_str = ""
         for k, v in hparams_overwrite_list.items():
             config[k] = v
             hparams_str += str(k) + "-" + str(v) + "_"
-        config["model_architecture"] = args.model_architecture
+        config["model_architecture"] = "biggan" 
         config["hparams_str"] = hparams_str.strip("_")
         config["seed"] = seed
-        #print(config)
         run_experiment(config)
 
 
 def run_experiment(config):
     training_utils.set_random_seed(seed=config.seed, device=config.device)
-    if args.model_architecture == "biggan":
-        training_pipeline = pipeline.GANPipeline.from_config(data_path=args.data_path, config=config)
-    else:
-        raise ValueError(f"Architecture type {args.model_architecture} is not supported")
+    training_pipeline = pipeline.GANPipeline.from_config(data_path=DATA_PATH, config=config)
     training_pipeline.train_model()
 
 

@@ -17,18 +17,18 @@ class DiscBigGAN(nn.Module):
         self.pre_down_blocks = nn.Sequential(*[
             layers.DownResnetBlock(in_ch=in_m, out_ch=out_m, ks=ks, sn=sn, bias=False, w_init=w_init)
             for in_m, out_m in m_pre_chs
-        ]) # tf 64 -> # here 64
+        ])
 
-        self.non_loc = layers.SelfAttn(mult_chs["pre"][-1], sn=sn) # tf 64 # here 64
+        self.non_loc = layers.SelfAttn(mult_chs["pre"][-1], sn=sn)
         self.post_down_blocks = nn.Sequential(*[
             layers.DownResnetBlock(in_ch=in_m, out_ch=out_m, ks=ks, sn=sn, bias=False, w_init=w_init)
             for in_m, out_m in m_post_chs
-        ]) # tf -> 128 -> 256 # here 128 -> 256
+        ])
 
         self.res_block = layers.ConstResnetBlock(resblocks_output, resblocks_output, ks, sn=sn, bias=False, w_init=w_init)
         self.relu = nn.ReLU()
         self.linear = nn.Linear(in_features=resblocks_output, out_features=1)
-        self.cls_embedding = nn.Embedding(num_embeddings=num_cls, embedding_dim=resblocks_output) # does this embedding dim should be different than the generetor ones?
+        self.cls_embedding = nn.Embedding(num_embeddings=num_cls, embedding_dim=resblocks_output)
 
         if w_init is not None: w_init(self.linear.weight)
 

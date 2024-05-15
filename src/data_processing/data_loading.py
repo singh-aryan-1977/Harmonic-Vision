@@ -14,14 +14,6 @@ def get_dataloader(dataset, bs):
     )
     return loader
 
-
-def get_smaller_sample(dataset):
-    num_images = 20000
-    cifar_num_images = len(dataset)
-    indices = random.sample(range(cifar_num_images), num_images)
-    dataset.data = dataset.data[indices]
-    dataset.targets = [dataset.targets[i] for i in indices]
-
 def get_CIFAR10_loader(data_path, config):
     dataset = datasets.CIFAR10(
         root=data_path,
@@ -32,36 +24,9 @@ def get_CIFAR10_loader(data_path, config):
             transforms.ToTensor(),
         ])
     )
-    get_smaller_sample(dataset)
     return get_dataloader(dataset, config["bs"])
 
-
-def get_CIFAR100_loader(data_path, config):
-    dataset = datasets.CIFAR100(
-        root=data_path,
-        download=True,
-        transform=transforms.Compose([
-            transforms.Resize(config.image_size),
-            transforms.CenterCrop(config.image_size),
-            transforms.ToTensor(),
-        ])
-    )
-    return get_dataloader(dataset, config.bs)
-
-
-def get_imagenette_loader(data_path, config): # shorter edge 160
-    dataset = mydatasets.Imagenette(
-        root=data_path,
-        transform=transforms.Compose([
-            transforms.Resize(config.image_size),
-            transforms.CenterCrop(config.image_size),
-            transforms.ToTensor(),
-        ])
-    )
-    return get_dataloader(dataset, config.bs)
-
-
-def get_imagewoof_loader(data_path, config): # shorter edge 160
+def get_imagewoof_loader(data_path, config):
     dataset = mydatasets.Imagenette(
         root=data_path,
         csv="noisy_imagewoof.csv",
@@ -73,40 +38,23 @@ def get_imagewoof_loader(data_path, config): # shorter edge 160
     )
     return get_dataloader(dataset, config.bs)
 
-
-def get_FMNIST_loader(data_path, config):
-    dataset = FashionMNIST(
-        data_path,
-        download=True,
+def get_custom_loader(data_path, config):
+    print("running custom dataset")
+    dataset = mydatasets.Imagenette(
+        root=data_path,
+        csv="data.csv",
         transform=transforms.Compose([
-            transforms.Resize(config.image_size),
-            transforms.CenterCrop(config.image_size),
+            transforms.Resize(config["image_size"]),
+            transforms.CenterCrop(config["image_size"]),
             transforms.ToTensor(),
         ])
     )
-    return get_dataloader(dataset, config.bs)
-
-
-def get_MNIST_loader(data_path, config):
-    dataset = MNIST(
-        data_path,
-        download=True,
-        transform=transforms.Compose([
-            transforms.Resize(config.image_size),
-            transforms.CenterCrop(config.image_size),
-            transforms.ToTensor(),
-        ])
-    )
-    return get_dataloader(dataset, config.bs)
-
+    return get_dataloader(dataset, config["bs"])
 
 loaders = {
-    "MNIST": get_MNIST_loader,
-    "FMNIST": get_FMNIST_loader,
     "CIFAR10": get_CIFAR10_loader,
-    "CIFAR100": get_CIFAR100_loader,
-    "imagenette": get_imagenette_loader,
     "imagewoof": get_imagewoof_loader,
+    "custom": get_custom_loader,
 }
 
 

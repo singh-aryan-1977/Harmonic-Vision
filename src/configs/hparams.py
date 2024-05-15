@@ -9,7 +9,7 @@ hparams = {
     "logging_path": "./data/{ds_name}/{model_architecture}2/logs/{name}",
     "save_model_path": "./data/{ds_name}/{model_architecture}2/checkpoints/{hparams}",
     "save_name": "gan",
-    "save_model_interval": 1,
+    "save_model_interval": 50,
 
     # hparams
     "clf_lr": 2e-4,

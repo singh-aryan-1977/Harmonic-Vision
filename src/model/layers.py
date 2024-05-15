@@ -90,7 +90,6 @@ class ConstResnetBlock(nn.Module):
 
 
 class SelfAttn(nn.Module):
-    # https://github.com/heykeetae/Self-Attention-GAN/blob/master/sagan_models.py
     def __init__(self, in_dim, sn):
         super(SelfAttn, self).__init__()
         self.chanel_in = in_dim
@@ -159,9 +158,9 @@ class CondBatchNorm2d(torch.nn.Module):
 
         if self.training and self.track_running_stats:
             self.num_batches_tracked += 1
-            if self.momentum is None:  # use cumulative moving average
+            if self.momentum is None:
                 exponential_average_factor = 1.0 / self.num_batches_tracked.item()
-            else:  # use exponential moving average
+            else:
                 exponential_average_factor = self.momentum
 
         out = torch.nn.functional.batch_norm(

@@ -16,118 +16,61 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.append(parent_dir)
 
 from src.pipeline.pipeline import GANPipeline
-from src.training_utils.training_utils import get_config
 
-#get input arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--song",required=True)
-parser.add_argument("--resolution", default='512')
-parser.add_argument("--duration", type=int)
-parser.add_argument("--pitch_sensitivity", type=int, default=220)
-parser.add_argument("--tempo_sensitivity", type=float, default=0.25)
-parser.add_argument("--depth", type=float, default=1)
-parser.add_argument("--classes", nargs='+', type=int)
-parser.add_argument("--num_classes", type=int, default=10)
-parser.add_argument("--sort_classes_by_power", type=int, default=0)
-parser.add_argument("--jitter", type=float, default=0.5)
-parser.add_argument("--frame_length", type=int, default=512)
-parser.add_argument("--truncation", type=float, default=1)
-parser.add_argument("--smooth_factor", type=int, default=20)
-parser.add_argument("--batch_size", type=int, default=30)
-parser.add_argument("--use_previous_classes", type=int, default=0)
-parser.add_argument("--use_previous_vectors", type=int, default=0)
-parser.add_argument("--output_file", default="output.mp4")
 args = parser.parse_known_args()
 
-def truncated_noise_sample(batch_size=1, dim_z=100, truncation=1., seed=None):
+def truncated_noise_sample(batch_size=1, dim_z=120, truncation=1., seed=None):
     state = None if seed is None else np.random.RandomState(seed)
     values = truncnorm.rvs(-2, 2, size=(batch_size, dim_z), random_state=state).astype(np.float32)
     return truncation * values
 
-#read song
 args = args[0]
 if args.song:
-    song=args.song
+    song = args.song
     print('\nReading audio \n')
     y, sr = librosa.load(song)
 else:
     raise ValueError("you must enter an audio file name in the --song argument")
 
-#set model name based on resolution
-model_name='biggan-deep-' + args.resolution
+smooth_factor = 20
 
-frame_length=args.frame_length
+FRAME_LENGTH = 512
+PITCH = 80 * 512 / FRAME_LENGTH
+TEMPO = 0.25 * FRAME_LENGTH / 512
+DEPTH = 1
+NUM_CLASSES = 5
+JITTER = 0.8
+TRUNCATION = 1
+BATCH_SIZE = 30
+OUTPUT_PATH = "output.mp4"
+DATA_PATH = '../input/custom_dataset'
+CHECKPOINT_PATH = './data/custom/biggan2/checkpoints/checkpoint_225.pth'
+SMOOTH_FACTOR = int((smooth_factor*512)/FRAME_LENGTH)
 
-#set pitch sensitivity
-pitch_sensitivity=(300-args.pitch_sensitivity) * 512 / frame_length
+frame_lim = int(np.floor(len(y)/sr*22050/FRAME_LENGTH/BATCH_SIZE))
 
-#set tempo sensitivity
-tempo_sensitivity=args.tempo_sensitivity * frame_length / 512
-
-#set depth
-depth=args.depth
-
-#set number of classes
-num_classes=args.num_classes
-
-#set sort_classes_by_power
-sort_classes_by_power=args.sort_classes_by_power
-
-#set jitter
-jitter=args.jitter
-
-#set truncation
-truncation=args.truncation
-
-#set batch size
-batch_size=args.batch_size
-
-#set use_previous_classes
-use_previous_vectors=args.use_previous_vectors
-
-#set use_previous_vectors
-use_previous_classes=args.use_previous_classes
-
-#set output name
-outname=args.output_file
-
-#set smooth factor
-if args.smooth_factor > 1:
-    smooth_factor=int(args.smooth_factor * 512 / frame_length)
-else:
-    smooth_factor=args.smooth_factor
-
-#set duration
-if args.duration:
-    seconds=args.duration
-    frame_lim=int(np.floor(seconds*22050/frame_length/batch_size))
-else:
-    frame_lim=int(np.floor(len(y)/sr*22050/frame_length/batch_size))
-
-
-
-# Load pre-trained model
-checkpoint = '/Users/adithyasriram/Desktop/CSCI 1430/Harmonic-Vision/checkpoints/checkpoint_150.pth' 
-state_dict = torch.load(checkpoint, map_location=torch.device('cpu'))
+state_dict = torch.load(CHECKPOINT_PATH)
 
 config = {
-        'ds_name': 'CIFAR10',
-        'num_cls': 10,
+        'ds_name': 'custom',
+        'num_cls': 5,
         'loading_normalization_mean': 0.5,
         'loading_normalization_var': 0.5,
-        'w_init': torch.nn.init.orthogonal_,
-        'save_metric_interval': 1,
-        'logging_interval': 10,
+        'w_init': None,
+        'save_metric_interval': 10,
+        'logging_interval': 35,
         'seed': 420,
         'device': 'cuda',
         'img_rows': 4,
         'save_img_count': 12,
-        'real_imgs_save_path': './data/{ds_name}/{model_architecture}/real_img/{hparams}',
-        'gen_imgs_save_path': './data/{ds_name}/{model_architecture}/gen_img/{hparams}',
-        'logging_path': './data/{ds_name}/{model_architecture}/logs/{name}',
-        'save_model_path': './data/{ds_name}/{model_architecture}/checkpoints/{hparams}',
+        'real_imgs_save_path': './data/{ds_name}/{model_architecture}2/real_img/{hparams}',
+        'gen_imgs_save_path': './data/{ds_name}/{model_architecture}2/gen_img/{hparams}',
+        'logging_path': './data/{ds_name}/{model_architecture}2/logs/{name}',
+        'save_model_path': './data/{ds_name}/{model_architecture}2/checkpoints/{hparams}',
         'save_name': 'gan',
-        'save_model_interval': 50,
+        'save_model_interval': 25,
         'clf_lr': 0.0002,
         'disc_steps': 2,
         'gen_steps': 1,
@@ -140,351 +83,224 @@ config = {
         'weight_cutoff': 0.0,
         'add_noise': 0,
         'gen_mult_chs': {
-            'pre': (1024, 512),
-            'post': (512,), 'colors': 3
+            'pre': (1024, 512, 256, 128),
+            'post': (256,),
+            'colors': 3
             },
         'disc_mult_chs': {
             'colors': 3,
-            'pre': (512,),
-            'post': (512, 1024)
+            'pre': (256,),
+            'post': (128, 256, 512, 1024)
             },
         'enc_mult_chs': {
             'colors': 3,
-            'blocks': (64, 64, 128, 128, 256, 256, 512, 512)
+            'blocks': (128, 128, 256, 256, 512, 512, 1024, 1024)
             },
-        'enc_hidden': 256,
+        'enc_hidden': 512,
         'enc_in_mlp_dim': 512,
         'ks': 3,
-        'image_size': 32,
-        'latent_disc_blocks': 5,
-        'latent_disc_mlp_dim': 128,
-        'comb_disc_blocks': 5,
-        'comb_disc_mlp_dim': 128,
-        'embedding_dim': 64,
-        'latent_dim': 100,
-        'enc_out_dim': 100,
-        'bs': 128,
+        'image_size': 128,
+        'latent_disc_blocks': 6,
+        'latent_disc_mlp_dim': 256,
+        'comb_disc_blocks': 6,
+        'comb_disc_mlp_dim': 256,
+        'embedding_dim': 128,
+        'latent_dim': 120,
+        'enc_out_dim': 120,
+        'bs': 16,
         'model_architecture': 'biggan',
         'hparams_str': ''
     }
 
-data_path = '../input/cifar10-dataset'
 
-pipeline = GANPipeline.from_config(data_path, config)
+pipeline = GANPipeline.from_config(DATA_PATH, config)
 
 pipeline.model.load_state_dict(state_dict)
 pipeline.model.eval()
 
 model = pipeline.model
 
-#set device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+spectogram = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=120, fmax=8000, hop_length=FRAME_LENGTH)
 
-########################################
-########################################
-########################################
-########################################
-########################################
+mean_spectogram = np.mean(spectogram, axis=0)
 
+gradient = np.gradient(mean_spectogram)
+gradient = (gradient/np.max(gradient)).clip(min=0)
 
-#create spectrogram
-spec = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=100,fmax=8000, hop_length=frame_length)
+mean_spectogram = (mean_spectogram-np.min(mean_spectogram))/np.ptp(mean_spectogram)
 
-#get mean power at each time point
-specm=np.mean(spec,axis=0)
+chromagram = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=FRAME_LENGTH)
 
-#compute power gradient across time points
-gradm=np.gradient(specm)
+chromasort = np.argsort(np.mean(chromagram, axis=1))[::-1]
 
-#set max to 1
-gradm=gradm/np.max(gradm)
+classes = list(range(NUM_CLASSES))
 
-#set negative gradient time points to zero
-gradm = gradm.clip(min=0)
-
-#normalize mean power between 0-1
-specm=(specm-np.min(specm))/np.ptp(specm)
-
-#create chromagram of pitches X time points
-chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=frame_length)
-
-#sort pitches by overall power
-chromasort=np.argsort(np.mean(chroma,axis=1))[::-1]
-
-
-
-########################################
-########################################
-########################################
-########################################
-########################################
-
-
-if args.classes:
-    classes=args.classes
-    if len(classes) not in [12,num_classes]:
-        raise ValueError("The number of classes entered in the --class argument must equal 12 or [num_classes] if specified")
-
-elif args.use_previous_classes==1:
-    cvs=np.load('class_vectors.npy')
-    classes=list(np.where(cvs[0]>0)[0])
-
-else: #select 12 random classes
-    cls1000=list(range(1000))
-    random.shuffle(cls1000)
-    classes=cls1000[:12]
-
-
-classes = list(range(10))
-
-
-if sort_classes_by_power==1:
-    classes=[classes[s] for s in np.argsort(chromasort[:num_classes])]
-
-
-
-#initialize first class vector
-cv1=np.zeros(10)
-for pi,p in enumerate(chromasort[:num_classes]):
-
-    if num_classes < 12:
-        cv1[classes[pi]] = chroma[p][np.min([np.where(chrow>0)[0][0] for chrow in chroma])]
+init_class = np.zeros(NUM_CLASSES)
+for index, c in enumerate(chromasort[:NUM_CLASSES]):
+    if NUM_CLASSES < 12:
+        init_class[classes[index]] = chromagram[c][np.min([np.where(chroma > 0)[0][0] for chroma in chromagram])]
     else:
-        cv1[classes[p]] = chroma[p][np.min([np.where(chrow>0)[0][0] for chrow in chroma])]
+        init_class[classes[c]] = chromagram[c][np.min([np.where(chroma > 0)[0][0] for chroma in chromagram])]
 
-#initialize first noise vector
-nv1 = truncated_noise_sample(truncation=truncation)[0]
+init_noise = truncated_noise_sample(truncation=TRUNCATION)[0]
 
-#initialize list of class and noise vectors
-class_vectors=[cv1]
-noise_vectors=[nv1]
+class_vectors = [init_class]
+noise_vectors = [init_noise]
 
-#initialize previous vectors (will be used to track the previous frame)
-cvlast=cv1
-nvlast=nv1
+prev_class = init_class
+prev_noise = init_noise
 
-
-#initialize the direction of noise vector unit updates
-update_dir=np.zeros(100)
-for ni,n in enumerate(nv1):
-    if n<0:
-        update_dir[ni] = 1
+direction = np.zeros(120)
+for noise_index, noise in enumerate(init_noise):
+    if noise < 0:
+        direction[noise_index] = 1
     else:
-        update_dir[ni] = -1
+        direction[noise_index] = -1
 
 
-#initialize noise unit update
-update_last=np.zeros(100)
+last_dir = np.zeros(120)
 
+def generate_jitters(jitter):
+    new_jitters = np.zeros(120)
 
-########################################
-########################################
-########################################
-########################################
-########################################
-
-
-#get new jitters
-def new_jitters(jitter):
-    jitters=np.zeros(100)
-    for j in range(100):
-        if random.uniform(0,1)<0.5:
-            jitters[j]=1
+    for j in range(120):
+        if random.uniform(0,1) < 0.5:
+            new_jitters[j] = 1
         else:
-            jitters[j]=1-jitter
-    return jitters
+            new_jitters[j] = 1-jitter
+
+    return new_jitters
 
 
-#get new update directions
-def new_update_dir(nv2,update_dir):
-    for ni,n in enumerate(nv2):
-        if n >= 2*truncation - tempo_sensitivity:
-            update_dir[ni] = -1
+def update_direction(noise_vec, dir_vec):
+    for n_index, n_vector in enumerate(noise_vec):
+        if n_vector >= 2*TRUNCATION - TEMPO:
+            dir_vec[n_index] = -1
 
-        elif n < -2*truncation + tempo_sensitivity:
-            update_dir[ni] = 1
-    return update_dir
+        elif n_vector < -2*TRUNCATION + TEMPO:
+            dir_vec[n_index] = 1
+
+    return dir_vec
 
 
-#smooth class vectors
-def smooth(class_vectors,smooth_factor):
+def smooth(class_vec, smooth_factor):
+    if smooth_factor == 1:
+        return class_vec
 
-    if smooth_factor==1:
-        return class_vectors
+    new_class_vec = []
 
-    class_vectors_terp=[]
-    for c in range(int(np.floor(len(class_vectors)/smooth_factor)-1)):
-        ci=c*smooth_factor
-        cva=np.mean(class_vectors[int(ci):int(ci)+smooth_factor],axis=0)
-        cvb=np.mean(class_vectors[int(ci)+smooth_factor:int(ci)+smooth_factor*2],axis=0)
+    for i in range(int(np.floor(len(class_vec)/smooth_factor)-1)):
+        smooth_class = i*smooth_factor
+        class_1 = np.mean(class_vec[int(smooth_class):int(smooth_class)+smooth_factor], axis=0)
+        class_2 = np.mean(class_vec[int(smooth_class)+smooth_factor:int(smooth_class)+smooth_factor*2], axis=0)
 
         for j in range(smooth_factor):
-            cvc = cva*(1-j/(smooth_factor-1)) + cvb*(j/(smooth_factor-1))
-            class_vectors_terp.append(cvc)
+            new_class = class_1*(1-j/(smooth_factor-1)) + class_2*(j/(smooth_factor-1))
+            new_class_vec.append(new_class)
 
-    return np.array(class_vectors_terp)
+    return np.array(new_class_vec)
 
 
-#normalize class vector between 0-1
-def normalize_cv(cv2):
-    min_class_val = min(i for i in cv2 if i != 0)
-    for ci,c in enumerate(cv2):
-        if c==0:
-            cv2[ci]=min_class_val
-    cv2=(cv2-min_class_val)/np.ptp(cv2)
+def normalize_classes(class_vec):
+    min_class_val = min(i for i in class_vec if i != 0)
+    for class_ind, c in enumerate(class_vec):
+        if c == 0:
+            class_vec[class_ind] = min_class_val
+    class_vec = (class_vec-min_class_val)/np.ptp(class_vec)
 
-    return cv2
+    return class_vec
 
 
 print('\nGenerating input vectors \n')
 
-for i in tqdm(range(len(gradm))):
+for i in tqdm(range(len(gradient))):
+    if i % 200 == 0:
+        jitters = generate_jitters(JITTER)
 
-    #print progress
-    pass
+    curr_noise = prev_noise
 
-    #update jitter vector every 100 frames by setting ~half of noise vector units to lower sensitivity
-    if i%200==0:
-        jitters=new_jitters(jitter)
+    update = np.array([TEMPO for _ in range(120)]) * (gradient[i]+mean_spectogram[i]) * direction * jitters
 
-    #get last noise vector
-    nv1=nvlast
+    update = (update + 3*last_dir)/4
 
-    #set noise vector update based on direction, sensitivity, jitter, and combination of overall power and gradient of power
-    update = np.array([tempo_sensitivity for k in range(100)]) * (gradm[i]+specm[i]) * update_dir * jitters
+    last_dir = update
 
-    #smooth the update with the previous update (to avoid overly sharp frame transitions)
-    update=(update+update_last*3)/4
+    n_vec = curr_noise + update
 
-    #set last update
-    update_last=update
+    noise_vectors.append(n_vec)
 
-    #update noise vector
-    nv2=nv1+update
+    prev_noise = n_vec
 
-    #append to noise vectors
-    noise_vectors.append(nv2)
+    direction = update_direction(n_vec, direction)
 
-    #set last noise vector
-    nvlast=nv2
+    init_class = prev_class
 
-    #update the direction of noise units
-    update_dir=new_update_dir(nv2,update_dir)
+    new_class_vec = np.zeros(NUM_CLASSES)
+    for j in range(NUM_CLASSES):
+        new_class_vec[classes[j]] = (prev_class[classes[j]] + ((chromagram[chromasort[j]][i])/(PITCH)))/(1+(1/((PITCH))))
 
-    #get last class vector
-    cv1=cvlast
-
-    #generate new class vector
-    cv2=np.zeros(10)
-    for j in range(num_classes):
-
-        cv2[classes[j]] = (cvlast[classes[j]] + ((chroma[chromasort[j]][i])/(pitch_sensitivity)))/(1+(1/((pitch_sensitivity))))
-
-    #if more than 6 classes, normalize new class vector between 0 and 1, else simply set max class val to 1
-    if num_classes > 6:
-        cv2=normalize_cv(cv2)
+    if NUM_CLASSES > 6:
+        new_class_vec = normalize_classes(new_class_vec)
     else:
-        cv2=cv2/np.max(cv2)
+        new_class_vec = new_class_vec/np.max(new_class_vec)
 
-    #adjust depth
-    cv2=cv2*depth
+    new_class_vec *= DEPTH
 
-    #this prevents rare bugs where all classes are the same value
-    if np.std(cv2[np.where(cv2!=0)]) < 0.0000001:
-        cv2[classes[0]]=cv2[classes[0]]+0.01
+    if np.std(new_class_vec[np.where(new_class_vec != 0)]) < 0.0000001:
+        new_class_vec[classes[0]] = new_class_vec[classes[0]] + 0.01
 
-    #append new class vector
-    class_vectors.append(cv2)
+    class_vectors.append(new_class_vec)
 
-    #set last class vector
-    cvlast=cv2
+    prev_class = new_class_vec
 
 
-#interpolate between class vectors of bin size [smooth_factor] to smooth frames
-class_vectors=smooth(class_vectors,smooth_factor)
+class_vectors = smooth(class_vectors, SMOOTH_FACTOR)
 
-#check whether to use vectors from last run
-if use_previous_vectors==1:
-    #load vectors from previous run
-    class_vectors=np.load('class_vectors.npy')
-    noise_vectors=np.load('noise_vectors.npy')
-else:
-    #save record of vectors for current video
-    np.save('class_vectors.npy',class_vectors)
-    np.save('noise_vectors.npy',noise_vectors)
-
-
-
-########################################
-########################################
-########################################
-########################################
-########################################
-
-
-#convert to Tensor
 noise_vectors = torch.Tensor(np.array(noise_vectors))
 class_vectors = torch.Tensor(np.array(class_vectors))
 
-#Generate frames in batches of batch_size
 
 print('\n\nGenerating frames \n')
 
-#send to CUDA if running on GPU
-model=model.to(device)
-noise_vectors=noise_vectors.to(device)
-class_vectors=class_vectors.to(device)
+model = model.to(device)
+noise_vectors = noise_vectors.to(device)
+class_vectors = class_vectors.to(device)
 
-
-frames = []
+video_frames = []
 
 for i in tqdm(range(frame_lim)):
 
-    #print progress
-    pass
-
-    if (i+1)*batch_size > len(class_vectors):
+    if (i+1)*BATCH_SIZE > len(class_vectors):
         torch.cuda.empty_cache()
         break
 
-    #get batch
-    noise_vector=noise_vectors[i*batch_size:(i+1)*batch_size]
-    class_vector=class_vectors[i*batch_size:(i+1)*batch_size]
+    noise_vec = noise_vectors[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
+    class_vec = class_vectors[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
 
-    class_vector = torch.argmax(class_vector, dim=1)
-    # Generate images
+    class_vec = torch.argmax(class_vec, dim=1)
+
     with torch.no_grad():
-        print(noise_vector.shape)
-        print(class_vector.shape)
-        output, _ = model.generate_imgs(cls=class_vector.long(), noise=noise_vector)
+        output, _ = model.generate_imgs(cls=class_vec.long(), noise=noise_vec)
 
-    output_cpu=output.cpu().data.numpy()
+    output_cpu = output.cpu().data.numpy()
 
-    #convert to image array and add to frames
-    # for out in output_cpu:
-    #     print(out.shape)
-    for out in output_cpu:
-        out = out.transpose((1, 2, 0))
-        out = np.clip(((out + 1) / 2.0) * 256, 0, 255)
-        im = []
-        for i, o in enumerate(out):
-          out_array = np.asarray(np.uint8(o), dtype=np.uint8)
-          im.append(Image.fromarray(out_array))
-        im=np.array(im)
-        frames.append(im)
+    for res in output_cpu:
+        res = res.transpose((1, 2, 0))
+        res = np.clip(((res + 1) / 2.0) * 256, 0, 255)
+        images = []
+        for ind, out in enumerate(res):
+          output_array = np.asarray(np.uint8(out), dtype=np.uint8)
+          images.append(Image.fromarray(output_array))
+        images = np.array(images)
+        video_frames.append(images)
 
-    #empty cuda cache
     torch.cuda.empty_cache()
 
 
+audio = mpy.AudioFileClip(song, fps = 44100)
 
-#Save video
-aud = mpy.AudioFileClip(song, fps = 44100)
-
-if args.duration:
-    aud.duration=args.duration
-
-clip = mpy.ImageSequenceClip(frames, fps=22050/frame_length)
-clip = clip.set_audio(aud)
-clip.write_videofile(outname,audio_codec='aac')
+clip = mpy.ImageSequenceClip(video_frames, fps=22050/FRAME_LENGTH)
+clip = clip.set_audio(audio)
+clip.write_videofile(OUTPUT_PATH, audio_codec='aac')
