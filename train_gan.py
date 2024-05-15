@@ -11,7 +11,7 @@ EXP_HPARAMS = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset", type=str, default="CIFAR10",
-                    choices=["FMNIST", "MNIST", "CIFAR10", "CIFAR100", "imagenette", "imagewoof"], help="dataset name")
+                    choices=["FMNIST", "MNIST", "CIFAR10", "CIFAR100", "imagenette", "imagewoof", "custom"], help="dataset name")
 parser.add_argument("--data_path", type=str, default="../input/cifar10-dataset",
                     help="path to dataset root folder")
 parser.add_argument("--model_architecture", type=str, default="biggan",

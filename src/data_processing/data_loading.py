@@ -35,6 +35,17 @@ def get_CIFAR10_loader(data_path, config):
     get_smaller_sample(dataset)
     return get_dataloader(dataset, config["bs"])
 
+def get_oxford_flowers_loader(data_path, config):
+    dataset = datasets.ImageFolder(
+        root=data_path,
+        transform=transforms.Compose([
+            transforms.Resize(config["image_size"]),
+            transforms.CenterCrop(config["image_size"]),
+            transforms.ToTensor(),
+        ])
+    )
+    return get_dataloader(dataset, config["bs"])
+
 
 def get_CIFAR100_loader(data_path, config):
     dataset = datasets.CIFAR100(
