@@ -9,4 +9,4 @@ Link to Google Drive: https://drive.google.com/drive/folders/1kT_zQcVXeL8rFwmanp
 To train GAN: python train_gan.py
 To generate music video: python music.py --song SONG
 
-Note: Data path to checkpoint.pth file will need to updated in the music.py file and name of dataset, datapath need to be updated in train_gan.py
+Note: File path to checkpoint.pth file will need to updated in the music.py file and name of dataset, datapath need to be updated in train_gan.py before running code
